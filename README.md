@@ -1,5 +1,5 @@
 # Discord-версия бота
-## Бот будет доступен [здесь](https://discord.com/developers/applications/1072969774285471814/information)
+## Бот будет доступен [здесь](https://discord.com/api/oauth2/authorize?client_id=1072969774285471814&permissions=8&scope=bot)
 ## Бот умеет искать музыку в яндекс.музыке и ютубе, создавать и воспроизводить очереди, чтобы узнать больше - пишите .commands
 
 ## Структура проекта
