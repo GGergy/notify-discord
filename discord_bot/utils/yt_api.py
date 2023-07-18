@@ -37,8 +37,8 @@ def search(query):
 
 
 def get_link(vid):
-    if os.path.isfile(f'temp/{vid}.mp3'):
-        return os.path.join(os.path.abspath('.'), 'temp', f'{vid}.mp3')
+    if os.path.isfile(f'temp/{vid}.mp4'):
+        return os.path.join(os.path.abspath('.'), 'temp', f'{vid}.mp4')
     a = YouTube(f"https://www.youtube.com/watch?v={vid}").streams.filter(only_audio=True,
                                                                          file_extension='mp4')[-1].\
         download(output_path='temp', filename=f'{vid}.mp4')

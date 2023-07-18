@@ -38,6 +38,27 @@ async def call_play(ctx):
     return
 
 
+@bot.command(name='me_gustas')
+async def me_gustas(ctx):
+    server, session = sqlast_hope.server(ctx.message.author.guild.id)
+    if ctx.message.content.strip().count(' ') == 0 or \
+            not ctx.message.content[ctx.message.content.find(' ') + 1:].strip().isdigit():
+        repits = 1
+    else:
+        repits = int(ctx.message.content[ctx.message.content.find(' ') + 1:].strip())
+    q = server.get_queue()
+    [q.insert(0, 'me_gustas') for _ in range(repits)]
+    server.pack_queue(q)
+    session.commit()
+    session.close()
+    if not ctx.author.voice:
+        await ctx.reply(f'Похоже, вы не в голосовом канале')
+        return
+    await begin_play(author=ctx.message.author)
+    await ctx.reply(f'Me gustan los aviones, me gustas tu. Me gusta viajar, me gustas tu!')
+    return
+
+
 @bot.command(name='search')
 async def search(ctx):
     if ctx.message.content.strip().count(' ') == 0:
@@ -147,20 +168,14 @@ def static_begin_play(author):
     vc = author.guild.voice_client
     server.now = q[0]
     track = str(q[0])
-    if track.isdigit():
+    if track == 'me_gustas':
+        source = 'discord_bot/assets/me_gustas.mp3'
+        options = {'options': '-vn'}
+    elif track.isdigit():
         source = music_api.get_link(int(track))
         options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     else:
-        source = False
-        while q and not source:
-            source = yt_api.get_link(track)
-            if not source:
-                q.pop(0)
-        if not source:
-            server.pack_queue(q)
-            session.commit()
-            session.close()
-            return
+        source = yt_api.get_link(track)
         options = {'options': '-vn'}
     ff = discord.FFmpegPCMAudio(executable="discord_bot/assets/bin/ffmpeg.exe", source=source,
                                 **options)
