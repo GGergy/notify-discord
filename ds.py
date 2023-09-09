@@ -1,3 +1,5 @@
+import os
+
 import discord
 from discord_bot.utils import sqlast_hope, music_api, config, yt_api
 from discord.ext import commands
@@ -38,25 +40,15 @@ async def call_play(ctx):
     return
 
 
-@bot.command(name='me_gustas')
+@bot.command(name='local')
 async def me_gustas(ctx):
-    server, session = sqlast_hope.server(ctx.message.author.guild.id)
-    if ctx.message.content.strip().count(' ') == 0 or \
-            not ctx.message.content[ctx.message.content.find(' ') + 1:].strip().isdigit():
-        repits = 1
-    else:
-        repits = int(ctx.message.content[ctx.message.content.find(' ') + 1:].strip())
-    q = server.get_queue()
-    [q.insert(0, 'me_gustas') for _ in range(repits)]
-    server.pack_queue(q)
-    session.commit()
-    session.close()
-    if not ctx.author.voice:
-        await ctx.reply(f'Похоже, вы не в голосовом канале')
-        return
-    await begin_play(author=ctx.message.author)
-    await ctx.reply(f'Me gustan los aviones, me gustas tu. Me gusta viajar, me gustas tu!')
-    return
+    msg = await ctx.reply('Дождитесь результатов поиска')
+    res = [{"name": i, "id": i} for item in os.walk('discord_bot/assets/local') for i in item[2]]
+    view = discord.ui.View()
+    for item in res:
+        b = await generate_track_button(item)
+        view.add_item(b)
+    await msg.edit(content='Вот что я нашел', view=view)
 
 
 @bot.command(name='search')
@@ -64,13 +56,14 @@ async def search(ctx):
     if ctx.message.content.strip().count(' ') == 0:
         await ctx.reply('Похоже, вы не ввели поисковый запрос')
         return
+    msg = await ctx.reply('Дождитесь результатов поиска')
     data = ctx.message.content[ctx.message.content.find(' ') + 1:].strip()
     res = music_api.search(data)
     view = discord.ui.View()
     for item in res:
         b = await generate_track_button(item)
         view.add_item(b)
-    await ctx.reply('Вот что я нашел', view=view)
+    await msg.edit(content='Вот что я нашел', view=view)
 
 
 @bot.command(name='search_yt')
@@ -78,13 +71,14 @@ async def search_yt(ctx):
     if ctx.message.content.strip().count(' ') == 0:
         await ctx.reply('Похоже, вы не ввели поисковый запрос')
         return
+    msg = await ctx.reply('Дождитесь результатов поиска')
     data = ctx.message.content[ctx.message.content.find(' ') + 1:].strip()
     res = yt_api.search(data)
     view = discord.ui.View()
     for item in res:
         b = await generate_track_button(item)
         view.add_item(b)
-    await ctx.reply('Вот что я нашел', view=view)
+    await msg.edit(content='Вот что я нашел', view=view)
 
 
 async def generate_track_button(item):
@@ -168,14 +162,14 @@ def static_begin_play(author):
     vc = author.guild.voice_client
     server.now = q[0]
     track = str(q[0])
-    if track == 'me_gustas':
-        source = 'discord_bot/assets/me_gustas.mp3'
-        options = {'options': '-vn'}
+    if '.mp3' not in track and not track.isdigit():
+        source = yt_api.get_link(track)
+        options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     elif track.isdigit():
         source = music_api.get_link(int(track))
         options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     else:
-        source = yt_api.get_link(track)
+        source = f'discord_bot/assets/local/{track}'
         options = {'options': '-vn'}
     ff = discord.FFmpegPCMAudio(executable="discord_bot/assets/bin/ffmpeg.exe", source=source,
                                 **options)
@@ -260,6 +254,9 @@ async def commands(ctx):
     embed = discord.Embed(colour=0xa35de0, title='Команды этого бота',
                           description=f'{p}search (запрос) - поиск песен по названию и автору,'
                                       f' либо ссылке на Яндекс.Музыку\n'
+                                      f'{p}search_yt (запрос) - поиск видео по названию'
+                                      f' либо ссылке на видео или плейлист\n'
+                                      f'{p}local - скачаные на сервер песни\n'
                                       f'{p}play - воспроизводит текущую очередь\n{p}pause - пауза\n'
                                       f'{p}resume - снятие с паузы\n{p}stop - остановка и очистка очереди,'
                                       f' бот выходит из голосового канала\n'

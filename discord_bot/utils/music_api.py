@@ -1,6 +1,7 @@
 import yandex_music
 import requests
 from bs4 import BeautifulSoup
+from .yt_api import get_title
 from .config import music_key
 
 
@@ -28,7 +29,10 @@ def get_link(track_id):
 
 def get_metadata(track_id):
     if not str(track_id).isdigit():
-        return f"https://www.youtube.com/watch?v={track_id}"
+        if '.mp3' not in str(track_id):
+            return get_title(f"https://www.youtube.com/watch?v={track_id}")
+        else:
+            return track_id
     track = conn.tracks([track_id])[0]
     return f'{track.title} - {", ".join([i.name for i in track.artists])}'
 
